@@ -1,15 +1,6 @@
-var express = require('express');
-var router = express.Router();
-const Config = require('../config/index')
-
-const mysql2 = require('mysql2');
-const mysql = mysql2.createConnection({
-  host: Config.DB_HOST,
-  user: Config.DB_USER,
-  password: Config.DB_PASS,
-  database: Config.DATABASE
-});
-
+const express = require('express');
+const router = express.Router();
+const mysql = require("../config/connect")
 
 /* GET home page. */
 router.get('/', (req, res, next) => {
@@ -43,8 +34,8 @@ router.post('/product', (req, res, next) => {
 })
 
 router.get('/productEdit/:id', (req, res) => {
-  var condition = [req.params.id];
-  var sql = 'SELECT * FROM tb_product WHERE id = ?';
+  const condition = [req.params.id];
+  let sql = 'SELECT * FROM tb_product WHERE id = ?';
 
   mysql.query(sql, condition, (err, rs) => {
     if (err) {
@@ -64,8 +55,8 @@ router.get('/productEdit/:id', (req, res) => {
 })
 
 router.post('/productEdit/:id', (req, res) => {
-  var params = [req.body.barcode, req.body.name, req.params.id];
-  var sql = 'UPDATE tb_product SET barcode = ?, name = ? WHERE id = ?';
+  const params = [req.body.barcode, req.body.name, req.params.id];
+  const sql = 'UPDATE tb_product SET barcode = ?, name = ? WHERE id = ?';
 
   mysql.query(sql, params, (err, rs) => {
     if (err) {
@@ -78,7 +69,7 @@ router.post('/productEdit/:id', (req, res) => {
 
 
 router.get('/productDelete/:id', (req, res, next) => {
-  var condition = [req.params.id];
+  const condition = [req.params.id];
   mysql.query('DELETE FROM tb_product WHERE id = ?', condition, (err, rs) => {
     if (err) {
       res.send(err);
