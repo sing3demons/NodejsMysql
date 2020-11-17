@@ -8,7 +8,7 @@ router.get('/', (req, res, next) => {
 });
 
 router.get('/home', (req, res, next) => {
-  res.render('index', { title: 'Express' });
+  res.redirect('/')
 });
 
 router.get('/product', (req, res, next) => {
@@ -57,7 +57,6 @@ router.get('/productEdit/:id', (req, res) => {
 router.post('/productEdit/:id', (req, res) => {
   const params = [req.body.barcode, req.body.name, req.params.id];
   const sql = 'UPDATE tb_product SET barcode = ?, name = ? WHERE id = ?';
-
   mysql.query(sql, params, (err, rs) => {
     if (err) {
       res.send(err);
@@ -66,7 +65,6 @@ router.post('/productEdit/:id', (req, res) => {
     }
   })
 })
-
 
 router.get('/productDelete/:id', (req, res, next) => {
   const condition = [req.params.id];
@@ -80,17 +78,97 @@ router.get('/productDelete/:id', (req, res, next) => {
 })
 
 
-
 router.get('/importStock', (req, res, next) => {
-  res.render('product', { data: {} });
+  res.render('importStock', { data: {} });
 });
+
+router.post('/importStock', (req, res, next) => {
+  let sql = 'INSERT INTO tb_import_stock(product_id, qty, import_date) VALUES(?, ?, NOW())';
+  let params = [req.body.product_id, req.body.qty];
+  mysql.query(sql, params, (err, rs) => {
+    if (err) {
+      res.send(err);
+    } else {
+      res.redirect('importStockSuccess');
+    }
+  })
+})
+
+
+router.get('/importStockSuccess', (req, res) => {
+  res.render('importStockSuccess');
+})
+router.post('/searchProduct', (req, res) => {
+  let sql = 'SELECT * FROM tb_product WHERE barcode = ?';
+  mysql.query(sql, req.body.barcode, (err, rs) => {
+    if (err) {
+      res.send(err);
+    } else {
+      res.json(rs);
+    }
+  })
+})
+
+
 
 router.get('/outStock', (req, res, next) => {
-  res.render('product', { data: {} });
+  res.render('outStock', { data: {} });
 });
 
-router.get('/report', (req, res, next) => {
-  res.render('product', { data: {} });
-});
+router.post('/outStock', (req, res, next) => {
+  let sql = 'INSERT INTO tb_outstock(product_id, qty, outdate) VALUES(?, ?, NOW())';
+  let params = [req.body.product_id, req.body.qty];
+  mysql.query(sql, params, (err, rs) => {
+    if (err) {
+      res.send(err);
+    } else {
+      res.redirect('outStockSuccess');
+    }
+  })
+})
+
+router.get('/outStockSuccess', (req, res) => {
+  res.render('outStockSuccess');
+})
+
+router.get('/report', (req, res) => {
+  let data = { from: '', to: '', products: [] };
+  res.render('reportStock', data);
+})
+
+router.post('/report', (req, res) => {
+  let from = req.body.from + ' 00:00';
+  from = from.replace('/', '-');
+
+  let to = req.body.to + ' 23:59';
+  to = to.replace('/', '-');
+
+  let sql = `
+      SELECT
+          tb_product.barcode,
+          tb_product.name,
+          (
+              SELECT SUM(qty) FROM tb_import_stock 
+              WHERE (import_date BETWEEN ? AND ?) 
+              AND product_id = tb_product.id
+              ) AS total_import,
+              (
+                  SELECT SUM(qty) FROM tb_outstock 
+                  WHERE (outdate BETWEEN ? AND ?) 
+                  AND product_id = tb_product.id
+              )AS total_out
+          FROM tb_product`;
+  let params = [from, to, from, to];
+
+  mysql.query(sql, params, (err, rs) => {
+    if (err) {
+      res.send(err);
+    } else {
+      let data = { from: req.body.from, to: req.body.to, products: rs };
+      res.render('reportStock', data);
+    }
+  })
+})
+
 
 module.exports = router;
